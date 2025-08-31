@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
       className={cn(
         "bg-sidebar border-r border-sidebar-border flex flex-col sidebar-transition h-full",
         "md:translate-x-0 md:relative",
-        isMobile ? "fixed z-30 w-72" : isCollapsed ? "w-0" : "w-72",
+        isMobile ? "fixed z-30 w-72" : isCollapsed ? "w-0 overflow-hidden" : "w-72",
         isMobile && !isOpen ? "-translate-x-full" : "translate-x-0"
       )}
       data-testid="sidebar"
@@ -66,19 +66,6 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
               </div>
             )}
           </div>
-          {!isMobile && (
-            <button
-              onClick={onToggleCollapse}
-              className="p-1 hover:bg-sidebar-accent rounded transition-colors"
-              data-testid="sidebar-collapse-toggle"
-            >
-              {isCollapsed ? (
-                <ChevronRight className="w-4 h-4 text-sidebar-foreground" />
-              ) : (
-                <ChevronLeft className="w-4 h-4 text-sidebar-foreground" />
-              )}
-            </button>
-          )}
         </div>
       </div>
 
