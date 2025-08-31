@@ -38,11 +38,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar 
-          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          onSidebarCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          sidebarCollapsed={sidebarCollapsed}
-        />
+        <TopBar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
         
         <main className="flex-1 overflow-auto p-6 bg-background" data-testid="main-content">
           {children}

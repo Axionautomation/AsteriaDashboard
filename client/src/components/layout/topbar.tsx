@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 
 interface TopBarProps {
   onSidebarToggle: () => void;
-  onSidebarCollapse: () => void;
-  sidebarCollapsed: boolean;
 }
 
 const pageTitles = {
@@ -29,7 +27,7 @@ const pageDescriptions = {
   "/settings": "Configure your application preferences",
 };
 
-export default function TopBar({ onSidebarToggle, onSidebarCollapse, sidebarCollapsed }: TopBarProps) {
+export default function TopBar({ onSidebarToggle }: TopBarProps) {
   const [location] = useLocation();
   const isMobile = useIsMobile();
 
@@ -39,7 +37,7 @@ export default function TopBar({ onSidebarToggle, onSidebarCollapse, sidebarColl
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6" data-testid="topbar">
       <div className="flex items-center space-x-4">
-        {isMobile ? (
+        {isMobile && (
           <Button
             variant="ghost"
             size="sm"
@@ -48,16 +46,6 @@ export default function TopBar({ onSidebarToggle, onSidebarCollapse, sidebarColl
             data-testid="sidebar-toggle"
           >
             <Menu className="w-5 h-5" />
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onSidebarCollapse}
-            className="text-foreground hover:text-primary transition-colors"
-            data-testid="sidebar-collapse-topbar"
-          >
-            <PanelLeftClose className="w-5 h-5" />
           </Button>
         )}
         <div>

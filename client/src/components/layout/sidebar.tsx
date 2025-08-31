@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
       className={cn(
         "bg-sidebar border-r border-sidebar-border flex flex-col sidebar-transition h-full",
         "md:translate-x-0 md:relative",
-        isMobile ? "fixed z-30 w-72" : isCollapsed ? "w-16" : "w-72",
+        isMobile ? "fixed z-30 w-72" : isCollapsed ? "w-0" : "w-72",
         isMobile && !isOpen ? "-translate-x-full" : "translate-x-0"
       )}
       data-testid="sidebar"
