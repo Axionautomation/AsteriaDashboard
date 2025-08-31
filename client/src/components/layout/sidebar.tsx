@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   BarChart3, 
   History, 
@@ -45,37 +46,35 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
       className={cn(
         "bg-sidebar border-r border-sidebar-border flex flex-col sidebar-transition h-full",
         "md:translate-x-0 md:relative",
-        isMobile ? "fixed z-30 w-72" : isCollapsed ? "w-0 overflow-hidden" : "w-72",
+        isMobile ? "fixed z-30 w-72" : isCollapsed ? "w-16" : "w-72",
         isMobile && !isOpen ? "-translate-x-full" : "translate-x-0"
       )}
       data-testid="sidebar"
     >
       {/* Sidebar Header */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center justify-between">
-          <div className={cn("flex items-center", isCollapsed && !isMobile ? "justify-center" : "space-x-3")}>
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Rocket className="text-primary-foreground w-5 h-5" />
-            </div>
-            {(!isCollapsed || isMobile) && (
-              <div>
-                <h1 className="text-xl font-bold text-sidebar-foreground" data-testid="app-title">
-                  Asteria
-                </h1>
-                <p className="text-sm text-muted-foreground">Dashboard v1.0</p>
-              </div>
-            )}
+      <div className={cn("border-b border-sidebar-border", isCollapsed && !isMobile ? "p-3" : "p-6")}>
+        <div className={cn("flex items-center", isCollapsed && !isMobile ? "justify-center" : "space-x-3")}>
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <Rocket className="text-primary-foreground w-5 h-5" />
           </div>
+          {(!isCollapsed || isMobile) && (
+            <div>
+              <h1 className="text-xl font-bold text-sidebar-foreground" data-testid="app-title">
+                Asteria
+              </h1>
+              <p className="text-sm text-muted-foreground">Dashboard v1.0</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 p-4 space-y-2" data-testid="navigation-menu">
+      <nav className={cn("flex-1 space-y-2", isCollapsed && !isMobile ? "p-2" : "p-4")} data-testid="navigation-menu">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href || (location === "/" && item.href === "/dashboard");
           
-          return (
+          const linkContent = (
             <Link
               key={item.href}
               href={item.href}
@@ -88,12 +87,22 @@ export default function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
               data-testid={`nav-${item.label.toLowerCase()}`}
-              title={isCollapsed && !isMobile ? item.label : undefined}
             >
               <Icon className="w-5 h-5" />
               {(!isCollapsed || isMobile) && <span>{item.label}</span>}
             </Link>
           );
+
+          return isCollapsed && !isMobile ? (
+            <Tooltip key={item.href}>
+              <TooltipTrigger asChild>
+                {linkContent}
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{item.label}</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : linkContent;
         })}
       </nav>
 
