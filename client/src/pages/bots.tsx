@@ -49,10 +49,8 @@ export default function BotsPage() {
         type: botType,
         status: "inactive" as const,
       };
-      return apiRequest("/api/bots", {
-        method: "POST",
-        body: JSON.stringify(botData),
-      });
+      const response = await apiRequest("POST", "/api/bots", botData);
+      return await response.json();
     },
     onSuccess: (newBot) => {
       queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
