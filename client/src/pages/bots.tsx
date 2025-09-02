@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Select, 
   SelectContent, 
@@ -19,19 +24,19 @@ import {
   Calendar,
   ChevronRight,
   Webhook,
-  Brain
+  Brain,
+  Save,
+  Upload
 } from "lucide-react";
 import type { Bot as BotType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import BotConfigSidebar from "@/components/bot-config-sidebar";
+import { insertBotSchema } from "@shared/schema";
 
 type BotTypes = "MCP" | "Webhook" | "Custom OpenAI";
 
 export default function BotsPage() {
   const [showAddBot, setShowAddBot] = useState(false);
-  const [selectedBotType, setSelectedBotType] = useState<BotTypes | null>(null);
-  const [showConfigSidebar, setShowConfigSidebar] = useState(false);
   const [selectedBot, setSelectedBot] = useState<BotType | null>(null);
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   
@@ -79,18 +84,66 @@ export default function BotsPage() {
     }
   };
 
-  const handleCloseSidebar = () => {
-    setShowConfigSidebar(false);
-    setSelectedBotType(null);
-  };
-
   const handleSelectBot = (bot: BotType) => {
     setSelectedBot(bot);
   };
 
-  const handleConfigureBot = (bot: BotType) => {
-    setSelectedBotType(bot.type as BotTypes);
-    setShowConfigSidebar(true);
+  const configSchema = insertBotSchema.extend({
+    name: z.string().min(1, "Bot name is required"),
+    type: z.string().min(1, "Bot type is required"),
+    webhookUrl: z.string().url("Valid webhook URL required").optional(),
+    apiKey: z.string().min(1, "API key is required").optional(),
+    modelName: z.string().min(1, "Model name is required").optional(),
+    mcpServerUrl: z.string().url("Valid MCP server URL required").optional(),
+  });
+
+  type ConfigFormData = z.infer<typeof configSchema>;
+
+  const form = useForm<ConfigFormData>({
+    resolver: zodResolver(configSchema),
+    defaultValues: {
+      name: selectedBot?.name || "",
+      type: selectedBot?.type || "",
+      status: selectedBot?.status || "inactive",
+    },
+  });
+
+  // Reset form when selectedBot changes
+  useEffect(() => {
+    if (selectedBot) {
+      form.reset({
+        name: selectedBot.name,
+        type: selectedBot.type,
+        status: selectedBot.status,
+      });
+    }
+  }, [selectedBot, form]);
+
+  const updateBotMutation = useMutation({
+    mutationFn: async (data: ConfigFormData) => {
+      if (!selectedBot) return;
+      const response = await apiRequest("PATCH", `/api/bots/${selectedBot.id}`, data);
+      return await response.json();
+    },
+    onSuccess: (updatedBot) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      setSelectedBot(updatedBot);
+      toast({
+        title: "Bot published successfully",
+        description: "Your bot configuration has been saved and published.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to publish bot",
+        description: error.message || "An error occurred while publishing the bot.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onPublish = async (data: ConfigFormData) => {
+    await updateBotMutation.mutateAsync(data);
   };
 
   const getBotIcon = (type: string) => {
@@ -211,111 +264,198 @@ export default function BotsPage() {
         <div className="flex-1 bg-background">
           {selectedBot ? (
             <div className="p-6">
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                      {getBotIcon(selectedBot.type)}
-                    </div>
-                    <div>
-                      <h1 className="text-2xl font-bold text-card-foreground">{selectedBot.name}</h1>
-                      <p className="text-muted-foreground">{selectedBot.type} Bot</p>
-                    </div>
+              {/* Header with Publish Button */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                    {getBotIcon(selectedBot.type)}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge 
-                      variant={selectedBot.status === 'active' ? 'default' : 'secondary'}
-                      className={`${
-                        selectedBot.status === 'active' ? 'bg-chart-2/10 text-chart-2' :
-                        selectedBot.status === 'warning' ? 'bg-chart-3/10 text-chart-3' :
-                        'bg-secondary/10 text-secondary'
-                      }`}
-                    >
-                      {selectedBot.status}
-                    </Badge>
-                    <Button 
-                      variant="outline"
-                      onClick={() => handleConfigureBot(selectedBot)}
-                      data-testid={`configure-selected-bot`}
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configure
-                    </Button>
+                  <div>
+                    <h1 className="text-2xl font-bold text-card-foreground">{selectedBot.name}</h1>
+                    <p className="text-muted-foreground">{selectedBot.type} Bot Configuration</p>
                   </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Badge 
+                    variant={selectedBot.status === 'active' ? 'default' : 'secondary'}
+                    className={`${
+                      selectedBot.status === 'active' ? 'bg-chart-2/10 text-chart-2' :
+                      selectedBot.status === 'warning' ? 'bg-chart-3/10 text-chart-3' :
+                      'bg-secondary/10 text-secondary'
+                    }`}
+                  >
+                    {selectedBot.status}
+                  </Badge>
+                  <Button 
+                    onClick={form.handleSubmit(onPublish)}
+                    disabled={updateBotMutation.isPending}
+                    className="bg-primary hover:bg-primary/90"
+                    data-testid="publish-bot-button"
+                  >
+                    {updateBotMutation.isPending ? (
+                      "Publishing..."
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Publish
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
 
-              {/* Bot Details Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center">
-                      <Activity className="w-5 h-5 mr-2" />
-                      Bot Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Name</label>
-                      <p className="text-card-foreground">{selectedBot.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Type</label>
-                      <p className="text-card-foreground">{selectedBot.type}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Status</label>
-                      <p className="text-card-foreground capitalize">{selectedBot.status}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Created</label>
-                      <p className="text-card-foreground">
-                        {selectedBot.createdAt ? new Date(selectedBot.createdAt).toLocaleDateString() : 'Unknown'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
+              {/* Configuration Form */}
+              <form onSubmit={form.handleSubmit(onPublish)} className="space-y-6">
+                {/* Basic Settings */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center">
                       <Settings className="w-5 h-5 mr-2" />
-                      Configuration
+                      Basic Settings
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-muted-foreground text-sm">
-                      Bot configuration details will be displayed here based on the bot type and settings.
-                    </p>
-                    <Button 
-                      className="w-full" 
-                      variant="outline"
-                      onClick={() => handleConfigureBot(selectedBot)}
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Edit Configuration
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      Activity & Logs
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No recent activity to display</p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Bot activity and logs will appear here once the bot starts running.
-                      </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Bot Name</Label>
+                        <Input
+                          id="name"
+                          {...form.register("name")}
+                          placeholder="Enter bot name"
+                          data-testid="bot-name-input"
+                        />
+                        {form.formState.errors.name && (
+                          <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select 
+                          value={form.watch("status")} 
+                          onValueChange={(value) => form.setValue("status", value)}
+                        >
+                          <SelectTrigger data-testid="bot-status-select">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Bot Type</Label>
+                      <Input
+                        id="type"
+                        value={selectedBot.type}
+                        disabled
+                        className="bg-muted"
+                        data-testid="bot-type-input"
+                      />
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+
+                {/* Type-specific Configuration */}
+                {selectedBot.type === "Webhook" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Webhook className="w-5 h-5 mr-2" />
+                        Webhook Configuration
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="webhookUrl">Webhook URL</Label>
+                        <Input
+                          id="webhookUrl"
+                          {...form.register("webhookUrl")}
+                          placeholder="https://your-webhook-endpoint.com"
+                          data-testid="webhook-url-input"
+                        />
+                        {form.formState.errors.webhookUrl && (
+                          <p className="text-sm text-destructive">{form.formState.errors.webhookUrl.message}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedBot.type === "Custom OpenAI" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Brain className="w-5 h-5 mr-2" />
+                        OpenAI Configuration
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="apiKey">API Key</Label>
+                        <Input
+                          id="apiKey"
+                          type="password"
+                          {...form.register("apiKey")}
+                          placeholder="sk-..."
+                          data-testid="openai-api-key-input"
+                        />
+                        {form.formState.errors.apiKey && (
+                          <p className="text-sm text-destructive">{form.formState.errors.apiKey.message}</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="modelName">Model Name</Label>
+                        <Select 
+                          value={form.watch("modelName") || ""} 
+                          onValueChange={(value) => form.setValue("modelName", value)}
+                        >
+                          <SelectTrigger data-testid="openai-model-select">
+                            <SelectValue placeholder="Select model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gpt-4">GPT-4</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                            <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {form.formState.errors.modelName && (
+                          <p className="text-sm text-destructive">{form.formState.errors.modelName.message}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedBot.type === "MCP" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Bot className="w-5 h-5 mr-2" />
+                        MCP Configuration
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="mcpServerUrl">MCP Server URL</Label>
+                        <Input
+                          id="mcpServerUrl"
+                          {...form.register("mcpServerUrl")}
+                          placeholder="https://your-mcp-server.com"
+                          data-testid="mcp-server-url-input"
+                        />
+                        {form.formState.errors.mcpServerUrl && (
+                          <p className="text-sm text-destructive">{form.formState.errors.mcpServerUrl.message}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </form>
             </div>
           ) : (
             <div className="h-full flex items-center justify-center">
@@ -342,13 +482,6 @@ export default function BotsPage() {
           )}
         </div>
       </div>
-
-      {/* Configuration Sidebar */}
-      <BotConfigSidebar
-        isOpen={showConfigSidebar}
-        botType={selectedBotType}
-        onClose={handleCloseSidebar}
-      />
     </>
   );
 }

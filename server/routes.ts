@@ -42,6 +42,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/bots/:id", async (req, res) => {
+    try {
+      const bot = insertBotSchema.partial().parse(req.body);
+      const updatedBot = await storage.updateBot(req.params.id, bot);
+      if (!updatedBot) {
+        res.status(404).json({ message: "Bot not found" });
+      } else {
+        res.json(updatedBot);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid bot data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update bot" });
+      }
+    }
+  });
+
   // Test routes
   app.get("/api/tests", async (req, res) => {
     try {

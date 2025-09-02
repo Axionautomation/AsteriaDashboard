@@ -13,6 +13,7 @@ export interface IStorage {
   getAllBots(): Promise<Bot[]>;
   getBot(id: string): Promise<Bot | undefined>;
   createBot(insertBot: InsertBot): Promise<Bot>;
+  updateBot(id: string, updates: Partial<InsertBot>): Promise<Bot | undefined>;
   
   // Test methods
   getAllTests(): Promise<Test[]>;
@@ -55,6 +56,15 @@ export class DatabaseStorage implements IStorage {
       .values(insertBot)
       .returning();
     return bot;
+  }
+
+  async updateBot(id: string, updates: Partial<InsertBot>): Promise<Bot | undefined> {
+    const [bot] = await db
+      .update(bots)
+      .set(updates)
+      .where(eq(bots.id, id))
+      .returning();
+    return bot || undefined;
   }
 
   // Test methods
