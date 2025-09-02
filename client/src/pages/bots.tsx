@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import {
   Brain
 } from "lucide-react";
 import type { Bot as BotType } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import BotConfigSidebar from "@/components/bot-config-sidebar";
 
 type BotTypes = "MCP" | "Webhook" | "Custom OpenAI";
@@ -31,15 +33,52 @@ export default function BotsPage() {
   const [selectedBotType, setSelectedBotType] = useState<BotTypes | null>(null);
   const [showConfigSidebar, setShowConfigSidebar] = useState(false);
   const [selectedBot, setSelectedBot] = useState<BotType | null>(null);
+  const [isCreatingBot, setIsCreatingBot] = useState(false);
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: bots = [], isLoading } = useQuery<BotType[]>({
     queryKey: ["/api/bots"],
   });
 
-  const handleBotTypeSelect = (botType: BotTypes) => {
-    setSelectedBotType(botType);
-    setShowConfigSidebar(true);
-    setShowAddBot(false);
+  const createBotMutation = useMutation({
+    mutationFn: async (botType: BotTypes) => {
+      const botData = {
+        name: `New ${botType} Bot`,
+        type: botType,
+        status: "inactive" as const,
+      };
+      return apiRequest("/api/bots", {
+        method: "POST",
+        body: JSON.stringify(botData),
+      });
+    },
+    onSuccess: (newBot) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      setSelectedBot(newBot);
+      setShowAddBot(false);
+      toast({
+        title: "Bot created successfully",
+        description: `Your ${newBot.type} bot has been created and is ready to configure.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create bot",
+        description: error.message || "An error occurred while creating the bot.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleBotTypeSelect = async (botType: BotTypes) => {
+    setIsCreatingBot(true);
+    try {
+      await createBotMutation.mutateAsync(botType);
+    } finally {
+      setIsCreatingBot(false);
+    }
   };
 
   const handleCloseSidebar = () => {
@@ -49,6 +88,11 @@ export default function BotsPage() {
 
   const handleSelectBot = (bot: BotType) => {
     setSelectedBot(bot);
+  };
+
+  const handleConfigureBot = (bot: BotType) => {
+    setSelectedBotType(bot.type as BotTypes);
+    setShowConfigSidebar(true);
   };
 
   const getBotIcon = (type: string) => {
@@ -93,9 +137,9 @@ export default function BotsPage() {
               </Button>
             ) : (
               <div className="space-y-3">
-                <Select onValueChange={handleBotTypeSelect}>
+                <Select onValueChange={handleBotTypeSelect} disabled={isCreatingBot}>
                   <SelectTrigger className="w-full" data-testid="bot-type-select">
-                    <SelectValue placeholder="Select bot type" />
+                    <SelectValue placeholder={isCreatingBot ? "Creating bot..." : "Select bot type"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MCP">MCP</SelectItem>
@@ -107,6 +151,7 @@ export default function BotsPage() {
                   variant="outline" 
                   onClick={() => setShowAddBot(false)}
                   className="w-full"
+                  disabled={isCreatingBot}
                   data-testid="cancel-add-bot"
                 >
                   Cancel
@@ -192,6 +237,7 @@ export default function BotsPage() {
                     </Badge>
                     <Button 
                       variant="outline"
+                      onClick={() => handleConfigureBot(selectedBot)}
                       data-testid={`configure-selected-bot`}
                     >
                       <Settings className="w-4 h-4 mr-2" />
@@ -243,7 +289,11 @@ export default function BotsPage() {
                     <p className="text-muted-foreground text-sm">
                       Bot configuration details will be displayed here based on the bot type and settings.
                     </p>
-                    <Button className="w-full" variant="outline">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => handleConfigureBot(selectedBot)}
+                    >
                       <Settings className="w-4 h-4 mr-2" />
                       Edit Configuration
                     </Button>
