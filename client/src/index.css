@@ -4,13 +4,22 @@
 @tailwind utilities;
 
 :root {
+  /* Asteria Brand Colors */
+  --asteria-cream: #FEFDF8;
+  --asteria-orange: #F2583A;
+  --asteria-orange-hover: #E04D33;
+  --asteria-text-dark: #2D2D2D;
+  --asteria-text-light: #6B7280;
+  --asteria-border: #E5E7EB;
+  
+  /* Dashboard Colors (for logged-in state) */
   --background: #8F7F7C;
   --foreground: #1a1a1a;
   --card: #A39390;
   --card-foreground: #ffffff;
   --popover: hsl(45, 25%, 97%);
   --popover-foreground: hsl(0, 0%, 100%);
-  --primary: #eb1a4e;
+  --primary: #F2583A;
   --primary-foreground: #ffffff;
   --secondary: #c4c4c4;
   --secondary-foreground: #1a1a1a;
@@ -143,5 +152,90 @@
 
   .chart-container {
     background: linear-gradient(135deg, var(--card) 0%, var(--muted) 100%);
+  }
+
+  /* Asteria Landing Page Styles */
+  .asteria-landing {
+    background: var(--asteria-cream);
+    color: var(--asteria-text-dark);
+  }
+
+  .asteria-btn-primary {
+    background: var(--asteria-orange);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  .asteria-btn-primary:hover {
+    background: var(--asteria-orange-hover);
+    box-shadow: 0 8px 25px rgba(242, 88, 58, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .asteria-btn-secondary {
+    background: transparent;
+    color: var(--asteria-text-dark);
+    border: 2px solid var(--asteria-border);
+    transition: all 0.3s ease;
+  }
+
+  .asteria-btn-secondary:hover {
+    border-color: var(--asteria-orange);
+    color: var(--asteria-orange);
+  }
+
+  .asteria-card {
+    background: white;
+    border: 1px solid var(--asteria-border);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .asteria-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--asteria-orange);
+  }
+
+  .asteria-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .asteria-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .asteria-nav {
+    backdrop-filter: blur(10px);
+    background: rgba(254, 253, 248, 0.9);
+    border-bottom: 1px solid var(--asteria-border);
+  }
+
+  .asteria-gradient-text {
+    background: linear-gradient(135deg, var(--asteria-orange) 0%, #ff6b47 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
