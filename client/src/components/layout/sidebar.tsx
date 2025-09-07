@@ -26,7 +26,6 @@ const navigationItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/history", label: "History", icon: History },
   { href: "/bots", label: "Bots", icon: Bot },
-  { href: "/testing", label: "Testing", icon: FlaskConical },
   { href: "/status", label: "Status", icon: Activity },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

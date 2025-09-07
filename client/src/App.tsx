@@ -9,7 +9,6 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import History from "@/pages/history";
 import Bots from "@/pages/bots";
-import Testing from "@/pages/testing";
 import Status from "@/pages/status";
 import Settings from "@/pages/settings";
 
@@ -20,7 +19,6 @@ function DashboardRouter() {
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/history" component={History} />
         <Route path="/bots" component={Bots} />
-        <Route path="/testing" component={Testing} />
         <Route path="/status" component={Status} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
@@ -40,9 +38,6 @@ function Router() {
         <DashboardRouter />
       </Route>
       <Route path="/bots" nest>
-        <DashboardRouter />
-      </Route>
-      <Route path="/testing" nest>
         <DashboardRouter />
       </Route>
       <Route path="/status" nest>
